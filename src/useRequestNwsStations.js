@@ -1,8 +1,8 @@
-import useSwr from 'swr'
+import useSwr from 'swr';
 
-export const useRequestNwsStations = (gridId, gridX, gridY) => {
+export const useRequestNwsStations = async (gridId, gridX, gridY) => {
 
-    const fetcher = (...args) => fetch(...args).then(response => response.json());
+    const fetcher =  (...args) => fetch(...args).then(response => response.json());
 
     const url = `https://api.weather.gov/gridpoints/${gridId}/${gridX},${gridY}/stations`;
     const { data, error } = useSwr(url, { fetcher });

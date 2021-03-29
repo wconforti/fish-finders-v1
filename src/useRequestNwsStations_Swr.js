@@ -1,5 +1,6 @@
 // React Custom Hook 
-// A custom hook is a JavaScript function with a unique naming convention that requires the function name to start with 
+// A custom hook is a JavaScript function with a unique naming convention that 
+// requires the function name to start with 
 // 'use' and has the ability to call other hooks.
 
 import useSwr from 'swr'

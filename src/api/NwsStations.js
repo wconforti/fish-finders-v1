@@ -22,7 +22,7 @@ export function NwsStations (gridId, gridX, gridY) {
               setNwsStationsState({ loading: false, repos: allRepos }
             );
         });
-    }, [setNwsStationsState]);
+    }, [setNwsStationsState, apiUrl]);
 
     //console.log("NwsStations ==> Axios");
     //console.log( NwsStationsState.repos );

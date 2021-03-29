@@ -4,6 +4,7 @@ import mapboxgl from 'mapbox-gl';
 
 import { useRequestNwsStations_Swr } from '../useRequestNwsStations_Swr'
 import { useRequestNwsStations } from '../useRequestNwsStations'
+import { useRequestNOAABuoy_Swr } from '../useRequestNOAABuoy_Swr';
 import NwsStations from '../api/NwsStations'
 import { NwsStationsAsync } from '../api/NwsStationsAsync'
 
@@ -41,6 +42,9 @@ const MapView = () => {
   //console.log("Errors ==>" + errorNWS_Alt);
   //console.log(resultsNWS_Alt);
 
+  // const { data: resultsNdbc, error: errorNdbc } = useRequestNOAABuoy_Swr(_mBox_Lat, _mBox_Lon);
+  // console.log(resultsNdbc);
+  // console.log("Errors ==> " + errorNdbc);
 
   // NOAA Weather Buoys (rss)
 

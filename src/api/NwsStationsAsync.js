@@ -22,7 +22,7 @@ export async function NwsStationsAsync (gridId, gridX, gridY) {
               setNwsStationsState({ loading: false, repos: allRepos }
             );
         });
-    }, [setNwsStationsState]);
+    }, [setNwsStationsState, apiUrl]);
 
     console.log("NwsStationsAsync ==> Axios");
     console.log( NwsStationsState.repos )

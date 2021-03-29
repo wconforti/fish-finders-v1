@@ -5,12 +5,6 @@ import './../Map.css';
 import axios from 'axios';
 import xml2js from 'xml2js';
 
-//import { useRequestNwsStations_Swr } from '../useRequestNwsStations_Swr'
-//import { useRequestNwsPoints_Swr } from '../useRequestNwsPoints_Swr'
-//import { useRequestNwsStations } from '../useRequestNwsStations';
-//import NwsStations from '../api/NwsStations';
-//import NwsStationsAsync from '../api/NwsStationsAsync';
-
 mapboxgl.accessToken = 'pk.eyJ1Ijoid2NvbmZvcnRpIiwiYSI6ImNrajkyNnk3MjQ4YmEycnFqYm01cWVqamYifQ.P6dAko2hqzbdSnDOZq9IpA'
 
 const _gridId = "BOX";
@@ -28,48 +22,24 @@ const _mBox_Zoom = 8;
 
 const ndbRadius = 100;
 
-//const MapViewer = () => {
-// State set functions only correctly working when Mapviewer is invoked as a Function.  
-function MapViewer () {
-  const mapContainerRef = useRef(null);
 
-  console.log("const ==> MapViewer");
+function MapViewer_v2 () {
+    const mapContainerRef = useRef(null);
+    console.log("const ==> MapViewer");
+  
+    // Try Axios here!!!
+    //const resultsNWS_Axios = await NwsStationsAsync(_gridId, _gridX, _gridY);
+    //const resultsNWS_Axios = NwsStations(_gridId, _gridX, _gridY);
+    //console.log("NwsStations ==> Axios (MapView) ==> Results");
+    //console.log(resultsNWS_Axios);
+  
+    // Ok, for this iteration we are only going to 
+    // include: lng, lat and zoom in 'state' ascurrently
+    // they are the only values being displayed as a side effect.
+    const [lng, setLng] = useState(_mBox_Lng);
+    const [lat, setLat] = useState(_mBox_Lat);
+    const [zoom, setZoom] = useState(_mBox_Zoom);
 
-  // Try Axios here!!!
-  //const resultsNWS_Axios = await NwsStationsAsync(_gridId, _gridX, _gridY);
-  //const resultsNWS_Axios = NwsStations(_gridId, _gridX, _gridY);
-  //console.log("NwsStations ==> Axios (MapView) ==> Results");
-  //console.log(resultsNWS_Axios);
-
-  const [lng, setLng] = useState(_mBox_Lng);
-  const [lat, setLat] = useState(_mBox_Lat);
-  const [zoom, setZoom] = useState(_mBox_Zoom);
-
-  const [gridId, setGridId] = useState("None");
-  const [gridX, setGridX] = useState("-1");
-  const [gridY, setGridY] = useState("-1");
-
-  const [nwsStations, setNwsStations] = useState([]);
-  const [ndbcStations, setNdbcStations] = useState([]);
-  const [stationWindData, setStationWindData] = useState([]);
-
-  //// NWS Points ==> Get the NWS Points from the Initial Mapbox Settings
-  //const { _gridId, _gridX, _gridY } = useRequestNwsPoints_Swr(_mBox_Lat, _mBox_Lng);
-  //console.log("useRequestNwsPoints_Swr (Results)");
-  //console.log("_gridId: ==> " + _gridId,);
-  //console.log("_gridX: ==> " + _gridX,);
-  //console.log("_gridY: ==> " + _gridY,);
-
-
-  //// NWS Stations ==> Return a geoJSON object with NWS Stations data
-  //// using the 'grid' parameters retrieved from the useRequestNwsPoints_Swr Hook
-  //const { data: resultsNWS_Alt, error: errorNWS_Alt } = useRequestNwsStations(_gridId, _gridX, _gridY)
-  //console.log("useRequestNwsStations (MapViewer) ==> Results");
-
-  // https://www.mapbox.com/blog/mapping-u-s-wildfire-data-from-public-feeds
-  // https://dev.to/laney/react-mapbox-beginner-tutorial-2e35
-  // https://docs.mapbox.com/mapbox-gl-js/example/live-geojson/
-  // http://bl.ocks.org/ajzeigert/e71609306270eefd70eb
 
   // Initialize map when component mounts
   useEffect(() => {
@@ -80,38 +50,10 @@ function MapViewer () {
       zoom: zoom
     });
 
-    const getNwsPointsData = async (_mboxLat, _mboxLng) => {
-      const urlNwsPoints = `https://api.weather.gov/points/${_mboxLat},${_mboxLng}`;
-      console.log(urlNwsPoints);
 
-      // const response = await fetch(urlNwsPoints);
-      // //const response = await fetch(urlNwsPoints, {
-      // //  mode: 'no-cors', // no-cors, *cors, same-origin,
-      // //});
-      // //console.log("urlNwsPoints resp: ==> " + response.ok);
-      // const data = await response.json();
-
-      const response = await axios(urlNwsPoints);
-      const data = response.data;
-
-      //console.log("getNwsPointsData (Results)");
-      var _gridId_resp = data.properties.gridId;
-      var _gridX_resp = data.properties.gridX;
-      var _gridY_resp = data.properties.gridY;
-
-      //console.log("_gridId_resp: ==> " + _gridId_resp);
-      //console.log("_gridX_resp: ==> " + _gridX_resp);
-      ///console.log("_gridY_resp: ==> " + _gridY_resp);
-
-      setGridId(_gridId_resp);
-      setGridX(_gridX_resp);
-      setGridY(_gridY_resp);
-    };
-
-    //async function getStationsData (_gridId, _gridX, _gridY) {
     const getStationsData = async (_gridId, _gridX, _gridY) => {
       const urlNwsStations = `https://api.weather.gov/gridpoints/${_gridId}/${_gridX},${_gridY}/stations`;
-      console.log("urlNwsStations:= " + urlNwsStations);
+      //console.log("urlNwsStations:= " + urlNwsStations);
 
       // // ==> axios w/o Set State <==
       // const response = await axios(urlNwsStations);
@@ -124,29 +66,21 @@ function MapViewer () {
       // ==> axios w/o Set State <==
       const response = await axios(urlNwsStations);
       const data = await response.data;
-
       console.log("==> NdbcStations Data Loaded <==");
-
+      
       return data;
-
-      //setNwsStations(data);
     };
-
-
-    // async getXMLResponse() {
-    //   const response = await fetch('https://gist.githubusercontent.com/Pavneet-Sing/3a69eb13677eba270264579bf0aa2121/raw/8a7cddd4c4dad77ba09f9e59e97b87cc04cf09fa/ParseXMLResponse.xml')
-    //   console.log('response is', await response.text());
-    // };
-
+  
 
     const getNdbcStationsData = async (_mboxLat, _mboxLng) => {
       //const urlNdbcStations = `https://www.ndbc.noaa.gov/rss/ndbc_obs_search.php?lat=${_mboxLat}N&lon=${(_mboxLng * -1)}W&radius=100`;
       const urlNdbcStations = `http://localhost:8080/?lat=${_mboxLat}N&lon=${(_mboxLng * -1)}W&radius=100`;
-      console.log("getNdbcStationsData URL ==> " + urlNdbcStations);
+      //console.log("getNdbcStationsData URL ==> " + urlNdbcStations);
 
       /* Properties:
         ==> id
         ==> updated
+
         ==> wind_direction
         ==> wind_speed
         ==> wind_gust
@@ -172,32 +106,10 @@ function MapViewer () {
 
       // Parse baby... parse...
 
-      // // Promise Usage, seems slower than simple parseString below...
-      // var xml2js = require('xml2js');
-      // var parser = new xml2js.Parser(/* options */);
-      // parser.parseStringPromise(data).then(function (result) {
-      //   console.log('parseString Promise:')
-      //   console.dir(result);
-      // })
-      // .catch(function (err) {
-      //   // Failed
-      //   console.log('parser error');
-      // });
-      //const util = require('util');
-
       // The result object below will be in JSON format
       var parseString = require('xml2js').parseString;
       parseString(data, function (err, result) {
         //console.log(util.inspect(result, false, null));
-        //var resultFull = util.inspect(result, false, null);
-
-        // Create Feature Collection here:
-        // OK, result object above will be in JSON format
-        //console.log('stringify: ');
-        //console.log(JSON.stringify(result));
-        //var resultStringInit = JSON.stringify(result); 
-        //console.log('resultStringInit: ');
-        //console.log(resultStringInit);
 
         // Re-name the 'georss:point' node
         var resultStringInit = JSON.stringify(result); 
@@ -215,8 +127,8 @@ function MapViewer () {
           //console.log('geopoint: ' + station.geopoint);
           //onsole.log('link: ' + station.link.toString().trim());
 
-           // Skip all 'SHIP' title entries
-           if (station.title.toString().toLowerCase() !== 'ship') {
+            // Skip all 'SHIP' title entries
+            if (station.title.toString().toLowerCase() !== 'ship') {
             //console.log('geopoint: ' + station.title);
           
             // ==> id
@@ -316,11 +228,6 @@ function MapViewer () {
         }); // Iterate through the Station data
       });
 
-      // FeatureCollection featureCollection = FeatureCollection.fromFeature(Feature.fromGeometry(lineString))
-
-      // GeoJsonSource geoJsonSource = new GeoJsonSource("geojson-source", featureCollection);
-      // style.addSource(geoJsonSource);
-
       console.log("==> NdbcStations Data Loaded <==");
 
       return await Promise.resolve({
@@ -348,7 +255,7 @@ function MapViewer () {
 
       /* OK, this call has hosed us before, but let's see what happens here anyway */
       const urlNwsPoints = `https://api.weather.gov/points/${_mboxLat},${_mboxLng}`;
-      console.log(urlNwsPoints);
+      //console.log(urlNwsPoints);
 
       const resp_Points = await axios(urlNwsPoints);
       const data_Points = await resp_Points.data;
@@ -376,7 +283,7 @@ function MapViewer () {
       // ==> fetch <==
       //const response = await fetch(urlNwsStations);
       //const data = await response.json();
- 
+  
       // Parse, baby parse....
       // So we should now have a result set of NWS stations
       // Iterate through these and grab the 'id' property which 
@@ -419,26 +326,6 @@ function MapViewer () {
 
             var stationUrl = stat_Features.id.toString();
             //console.log("stationUrl: " + stationUrl);
-
-            // station_id = stat_Features.properties.stationIdentifier;
-            // stat_Identifier = stat_Features.properties.stationIdentifier;
-            // stat_Name = stat_Features.properties.name;
-
-            //console.log("station_id: " + station_id);
-            //console.log("stat_Name: " + stat_Name);
-
-            // // ==> id
-            // // From stationUrl
-            // var checkLinkIndex = stat_Features.id.toString().trim().lastIndexOf("/");
-            // let stationId = stat_Features.id.toString().trim().substring(checkLinkIndex + 1);
-            // station_id = stationId;
-            // Object.keys(stat_Features).map(async (key2) => {
-            //   if (key2 === "properties") {
-            //     station_id = stat_Features[key2].stationIdentifier;
-            //     stat_Identifier = stat_Features[key2].stationIdentifier;
-            //     stat_Name = stat_Features[key2].name;
-            //   }
-            // });
 
             // Create the URL to grab the individual Station Data  
             var stationDataUrl = `${stationUrl}/observations/latest`;
@@ -491,11 +378,6 @@ function MapViewer () {
             // values, otherwise skip on down...
             if (!(stat_windDirection == null && stat_windSpeed == null))
             {
-              //console.log("station_id: " + station_id);
-              //console.log("stat_Name: " + stat_Name);
-              //console.log("stat_windDirection: " + stat_windDirection);
-              //console.log("stat_windSpeed: " + stat_windSpeed);
-
               //if (stat_windDirection > 0 && stat_windSpeed > 0) {
 
                 // Convert km/h to knots !!!
@@ -505,13 +387,6 @@ function MapViewer () {
                 // Convert kmh to mph !!!
                 // divisor speed (km/h) / 1.852
                 var stat_wind_mph = stat_windSpeed / 1.852;
-
-                // console.log("station_id: " + station_id);
-                // console.log("stat_Name: " + stat_Name);
-                // console.log("stat_windDirection: " + stat_windDirection);
-                // console.log("stat_windSpeed: " + stat_windSpeed);
-                // console.log("stat_wind_knots: " + stat_wind_knots);
-                // console.log("stat_wind_knots (Round): " + stat_wind_knots.toFixed(0));
 
                 // Create a 'windDataFeaturesList' object and push it into the return object
                 //console.log("Push ==> NWS Station: " + station_id);
@@ -553,26 +428,6 @@ function MapViewer () {
       const data = await response.data;
       //console.log(data);
 
-      // ==> axios <==
-      // const response = await axios(urlNdbcStations);
-      // const data = await response.data;
-      // setNwsStations(data);
-
-      // Parse baby... parse...
-
-      // // Promise Usage, seems slower than simple parseString below...
-      // var xml2js = require('xml2js');
-      // var parser = new xml2js.Parser(/* options */);
-      // parser.parseStringPromise(data).then(function (result) {
-      //   console.log('parseString Promise:')
-      //   console.dir(result);
-      // })
-      // .catch(function (err) {
-      //   // Failed
-      //   console.log('parser error');
-      // });
-      //const util = require('util');
-
       // The result object below will be in JSON format
       var parseString = require('xml2js').parseString;
       parseString(data, function (err, result) {
@@ -594,12 +449,8 @@ function MapViewer () {
 
         // Iterate through the Station data
         stationData[0].item.map(async (station) => {
-          //console.log('title: ' + station.title);
-          //console.log('geopoint: ' + station.geopoint);
-          //onsole.log('link: ' + station.link.toString().trim());
-
-           // Skip all 'SHIP' title entries
-           if (station.title.toString().toLowerCase() !== 'ship') {
+            // Skip all 'SHIP' title entries
+            if (station.title.toString().toLowerCase() !== 'ship') {
             //console.log('geopoint: ' + station.title);
           
             // ==> id
@@ -619,7 +470,7 @@ function MapViewer () {
               let t_Match = title_match[0];
               stat_title = stat_title.replace(t_Match, '-');
             }
- 
+  
             // ==> coords
             var coords = station.geopoint.toString().split(" ");
             // ==> latitude
@@ -629,7 +480,6 @@ function MapViewer () {
             var sta_longitude = coords[1];
             var longitude = parseFloat(sta_longitude.toString(), 2);
             
-
             let wind_direction = null; //'';
             let wind_speed =  null; //'';
 
@@ -678,26 +528,16 @@ function MapViewer () {
 
                 // Wind direction must me an int
                 // There should alway be a value here at this point
-                //dir_degrees = parseInt(w_Match);
+                // dir_degrees = parseInt(w_Match);
 
                 // Rememeber, wind direction is where 
                 // three wind in coming from!!
                 var convert_deg_NOAA = parseInt(w_Match) + 180;
                 if (convert_deg_NOAA >= 360)
-                   convert_deg_NOAA = convert_deg_NOAA - 360;
+                    convert_deg_NOAA = convert_deg_NOAA - 360;
 
                 dir_degrees = convert_deg_NOAA;
               }
-
-              //var dir_degrees = matches[1];
-              //var dir_degrees = wind_direction;
-
-              // // Add NOAA Station data. if it qualifies.
-              // console.log("Push ==> NOAA Station: " + stat_title);
-              // console.log("statId ==> " + statId);
-              // console.log("stat_title ==> " + stat_title);
-              // console.log("speed_knots ==> " + speed_knots);
-              // console.log("dir_degrees ==> " + dir_degrees);
 
               // Create a 'windDataFeaturesList' object and push it into the return object
               windDataFeaturesList.push({
@@ -722,8 +562,6 @@ function MapViewer () {
         }); // Iterate through the Station data
       });
 
-     
-
       // return Promise.resolve({
       //   type: 'FeatureCollection',
       //   features: windDataFeaturesList,
@@ -734,7 +572,7 @@ function MapViewer () {
         features: windDataFeaturesList
       }
 
-      console.log(FeatureCollection);
+      //console.log(FeatureCollection);
       console.log(" ==> Wind Data Loaded <==");
 
       // var sourceWindData = new mapboxgl.GeoJSONSource({
@@ -743,77 +581,122 @@ function MapViewer () {
       // console.log(sourceWindData);
 
       return Promise.resolve(FeatureCollection);
-
     };
 
-    //getNwsPointsData(_mBox_Lat, _mBox_Lng);
 
-     //console.log("getStationsData (Set State Results)");
-     //console.log("gridId: ==> " + gridId);
-     //console.log("gridX: ==> " + gridX);
-     //console.log("gridY: ==> " + gridY);
-
-    /* ==> getStationsData  
-    // Call asyc getStationsData
-    // Set State below or check for error
-    getStationsData(_gridId, _gridX, _gridY) //;
-    .then(async nwsData => {
-      if (nwsData.type === "FeatureCollection")
-      {
-        setNwsStations(nwsData);
-        //setNwsStations(JSON.stringify(nwsData));
-        console.log(nwsStations);
-        console.log("getStationsData (Set State Results) ==> " + nwsData.type);
-      }
-    })
-    .catch(error => {
-      console.log(JSON.stringify(error));
-    });
-   */
-
-    /* ==> getNdbcStationsData  
-    // Call asyc getNdbcStationsData
-    // Set State below or check for error
-    getNdbcStationsData(_mBox_Lat, _mBox_Lng)
-    .then(ndbcData => {
-      setNdbcStations(ndbcData);
-      //console.log(ndbcStations);
-      //console.log("getNdbcStationsData (Set State Results)");
-    })
-    .catch(error => {
-      console.log(JSON.stringify(error));
-    });
-    */
-
-    // Call asyc getStationWindData
-    // Set State below or check for error
-    getStationWindData(_mBox_Lat, _mBox_Lng)
-    .then(windData => {
-      setStationWindData(windData);
-      console.log("getStationWindData (Set State Results)");
-      console.log(stationWindData);
-    })
-    .catch(error => {
-      console.log("ERROR ==> getStationWindData: " + JSON.stringify(error));
-    });
+    // 
 
     // Add navigation control (the +/- zoom buttons)
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
-    map.on("load", function () {
+    // https://gis.stackexchange.com/questions/240134/mapbox-gl-js-source-loaded-event
+
+    /*
+    map.once('styledata', loadTiles);   //The listener will be called first time the event fires after the listener is registered.
+
+    map.on("styledata", loadTiles);    // will fire multiple 3 times, whenever style changed.  
+                                       // event.stopPropagation(); does not work.
+
+    map.on("load", loadTiles);         // only fire 1 time. but when you change base map, use below
+
+    map.setStyle('mapbox://styles/mapbox/' + layerId, {diff: false});
+                                       //  on load event will not fire, which I need it fire to re-load geojson layer. 
+
+    map.on("styledata"    // works fine, but it fire 3 same event at same time, cause load 3 times geojson layer, cause other error when you load 3 times geojson layer at same time.
+    */
+
+    //map.on("load", function () {
+    //map.on('style.load', function() {
+    map.on("load", () => {
       // add the data source for new a feature collection with no features
-      console.log("map.on('load')");
-      //console.log(nwsStations);
+      console.log("map.on('style.load')");
 
-      /* NWS Station Data 
-      map.addSource("nws-station-data", {
-        type: "geojson",
-        data: nwsStations
-        //data: resultsNWS_Alt
-        //data: resultsNWS_Axios
-        //data: 'https://api.weather.gov/gridpoints/BOX/59,28/stations'
-      });
+      // OK, let's try this!!!!
+      
+      // // Call asyc getStationWindData
+      // getStationWindData(_mBox_Lat, _mBox_Lng)
+      // .then(windData => {
+      //     //console.log("getStationWindData ==> windData");
+          
+      //     /* Station Wind Data */
+      //     // windData should be a viable FeatureCollection object
+      //     // and at this point should be completely poputaled and available !!
 
+      //     //console.log(windData);
+      //     map.addSource("station-wind-data", {
+      //         type: "geojson",
+      //         data: windData
+      //     }); //.loaded(() => {
+      //         // do some stuff
+      //         //console.log("map.addLayer");
+
+      //       map.addLayer({
+      //           id: "station-wind-layer",
+      //           source: "station-wind-data",
+      //           type: "symbol",
+      //           layout: {
+      //             // full list of icons here: https://labs.mapbox.com/maki-icons
+      //             "icon-image": "airport-15", // this icons on our map
+      //             "icon-padding": 0,
+      //             "icon-allow-overlap": true,
+      //             "icon-rotation-alignment": "map",
+      //             "icon-rotate":{
+      //               "property":"wind_direction",
+      //               "stops": [
+      //                 [30, 30],
+      //                 [60, 60],
+      //                 [90, 90],
+      //                 [120, 120],
+      //                 [150, 150],
+      //                 [180, 180],
+      //                 [210, 210],
+      //                 [240, 240],
+      //                 [270, 270],
+      //                 [300, 300],
+      //                 [330, 330],
+      //                 [360, 360]
+      //               ],
+      //             }
+      //           }
+      //       });
+
+      //       // change cursor to pointer when user hovers over a clickable feature
+      //       map.on("mouseenter", "station-wind-layer", e => {
+      //         if (e.features.length) {
+      //           map.getCanvas().style.cursor = "pointer";
+      //         }
+      //       });
+
+      //       // reset cursor to default when user is no longer hovering over a clickable feature
+      //       map.on("mouseleave", "station-wind-layer", () => {
+      //         map.getCanvas().style.cursor = "";
+      //       });
+              
+      //     //});
+
+      //     // console.log("Query ==> station-wind-layer")
+      //     // const qtyWindData = map.querySourceFeatures("station-wind-layer");
+      //     // console.log(qtyWindData)
+      // })
+      // .catch(error => {
+      //     console.log("ERROR ==> getStationWindData: " + JSON.stringify(error));
+      // });
+
+
+
+
+      /* ==> getStationsData  */
+      // Call asyc getStationsData
+      // Set State below or check for error
+      getStationsData(_gridId, _gridX, _gridY) //;
+      .then(nwsStationData => {
+        if (nwsStationData.type === "FeatureCollection")
+        {
+          map.addSource("nws-station-data", {
+            type: "geojson",
+            data: nwsStationData,
+          });
+    
             // now add the layer, and reference the data source above by name
             map.addLayer({
               id: "nws-station-layer",
@@ -826,14 +709,24 @@ function MapViewer () {
                 "icon-allow-overlap": true
               }
             });
-      */
-      
-
-      /* NOAA Station Data 
-      map.addSource("ndbc-station-data", {
-        type: "geojson",
-        data:  ndbcStations
+        }
+      })
+      .catch(error => {
+        console.log(JSON.stringify(error));
       });
+    
+
+      /* ==> getNdbcStationsData  */
+      // Call asyc getNdbcStationsData
+      // Set State below or check for error
+      getNdbcStationsData(_mBox_Lat, _mBox_Lng)
+      .then(ndbcStationData => {
+
+          /* NOAA Station Data */
+          map.addSource("ndbc-station-data", {
+            type: "geojson",
+            data:  ndbcStationData,
+          });
 
             // now add the layer, and reference the data source above by name
             map.addLayer({
@@ -841,159 +734,29 @@ function MapViewer () {
               source: "ndbc-station-data",
               type: "symbol",
               layout: {
-                 // full list of icons here: https://labs.mapbox.com/maki-icons
+                // full list of icons here: https://labs.mapbox.com/maki-icons
                 "icon-image": "cemetery-15", // this icons on our map
                 "icon-padding": 0,
                 "icon-allow-overlap": true
               }
             });
-      */
+      })
+      .catch(error => {
+        console.log(JSON.stringify(error));
+      });
+    
 
 
-       /* Station Wind Data */
-      //console.log(stationWindData);
-       map.addSource("station-wind-data", {
-          type: "geojson",
-          data: stationWindData
-       }); //.then();
 
-            // now add the layer, and reference the data source above by name
-            map.addLayer({
-              id: "station-wind-layer",
-              source: "station-wind-data",
-              type: "symbol",
-              layout: {
-                // full list of icons here: https://labs.mapbox.com/maki-icons
-                "icon-image": "airport-15", // this icons on our map
-                "icon-padding": 0,
-                "icon-allow-overlap": true,
-                "icon-rotation-alignment": "map",
-                "icon-rotate":{
-                  "property":"wind_direction",
-                  "stops": [
-                    [30, 30],
-                    [60, 60],
-                    [90, 90],
-                    [120, 120],
-                    [150, 150],
-                    [180, 180],
-                    [210, 210],
-                    [240, 240],
-                    [270, 270],
-                    [300, 300],
-                    [330, 330],
-                    [360, 360]
-                  ],
-                }
-              }
-            });
 
-            // change cursor to pointer when user hovers over a clickable feature
-            map.on("mouseenter", "station-wind-layer", e => {
-              if (e.features.length) {
-                map.getCanvas().style.cursor = "pointer";
-              }
-            });
-
-            // reset cursor to default when user is no longer hovering over a clickable feature
-            map.on("mouseleave", "station-wind-layer", () => {
-              map.getCanvas().style.cursor = "";
-            });
-      
-          
-        
     });
 
-    // map.on('move', () => {
-
-    //  if (map.getLayer("station-wind-layer") != null)
-    // //     map.removeLayer("station-wind-layer");
-
-
-    // });
-
-
-
-    // map.on('move', () => {
-    //  setLng(map.getCenter().lng.toFixed(4));
-    //  setLat(map.getCenter().lat.toFixed(4));
-    //  setZoom(map.getZoom().toFixed(2));
-
-    //  console.log("map lat ==> " + map.getCenter().lat.toFixed(4) + "   Map lng==> " + map.getCenter().lng.toFixed(4) );
-    //  console.log("lat ==> " + lat + "   lng==> " + lng );
-    //  console.log("_mBox_Lat ==> " + _mBox_Lat + "   _mBox_Lng==> " + _mBox_Lng );
-
-    //  var windDataSet =
-    //  getStationWindData(map.getCenter().lat, map.getCenter().lng)
-    //  .then(async windData => {
-    //    setStationWindData(windData);
-    //    //console.log(windData);
-    //    console.log("map.on('move' == > getStationWindData (Set State Results)");
-    //  })
-    //  .catch(error => {
-    //    console.log("ERROR ==> getStationWindData: " + JSON.stringify(error));
-    //  });
-
-    //  // Remove Wind Data
-    //  if (map.getLayer("station-wind-layer") != null)
-    //     map.removeLayer("station-wind-layer");
-
-    //  if (map.getSource("station-wind-data") != null)     
-    //      map.removeSource("station-wind-data");
-
-
-    //  console.log(stationWindData);
-
-    //  map.addSource("station-wind-data", {
-    //   type: "geojson",
-    //   data: stationWindData,
-    //   //data: stationWindData
-    //       // data: await getStationWindData(_mBox_Lat, _mBox_Lng)
-    //       //         .then(windData => {
-    //       //           //setStationWindData(windData);
-    //       //           //console.log(stationWindData);
-    //       //           console.log("getStationWindData (Set State Results)");
-    //       //         })
-    //       //         .catch(error => {
-    //       //           console.log("ERROR ==> getStationWindData: " + JSON.stringify(error));
-    //       //         }),
-    //   });
-
-    //     // now add the layer, and reference the data source above by name
-        
-    //     map.addLayer({
-    //       id: "station-wind-layer",
-    //       source: "station-wind-data",
-    //       type: "symbol",
-    //       layout: {
-    //         // full list of icons here: https://labs.mapbox.com/maki-icons
-    //         "icon-image": "airport-15", // this icons on our map
-    //         "icon-padding": 0,
-    //         "icon-allow-overlap": true,
-    //         "icon-rotation-alignment": "map",
-    //         "icon-rotate":{
-    //           "property":"wind_direction",
-    //           "stops": [
-    //             [30, 30],
-    //             [60, 60],
-    //             [90, 90],
-    //             [120, 120],
-    //             [150, 150],
-    //             [180, 180],
-    //             [210, 210],
-    //             [240, 240],
-    //             [270, 270],
-    //             [300, 300],
-    //             [330, 330],
-    //             [360, 360]
-    //           ],
-    //         }
-    //       }
-    //     });
-
-
-    //  //getNwsPointsData(map.getCenter().lat, map.getCenter().lng);
-    // });
+    // Set the state values for the 'sidebar'
+    map.on('move', () => {
+      setLng(map.getCenter().lng.toFixed(4));
+      setLat(map.getCenter().lat.toFixed(4));
+      setZoom(map.getZoom().toFixed(2));
+    });
 
     // Clean up on unmount
     return () => map.remove();
@@ -1001,15 +764,15 @@ function MapViewer () {
   // <== useEffect
 
   return (
-    <div>
-      <div className='sidebarStyle'>
-        <div>
-          Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
-        </div>
+      <div>
+          <div className='sidebarStyle'>
+          <div>
+              Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
+          </div>
+          </div>
+          <div className='map-container' ref={mapContainerRef} />
       </div>
-      <div className='map-container' ref={mapContainerRef} />
-    </div>
-  );
+      );
 };
-
-export default MapViewer;
+    
+export default MapViewer_v2;
