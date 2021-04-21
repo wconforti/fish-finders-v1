@@ -5,6 +5,16 @@ import './../Map.css';
 import axios from 'axios';
 import xml2js from 'xml2js';
 
+//import { Container, Navbar, Button, ButtonDropdown, DropdownToggle, DropdownMenu, DropdownItem } from 'react-bootstrap';
+
+import Container from 'react-bootstrap/Container';
+import Row from 'react-bootstrap/Row';
+import Col from 'react-bootstrap/Col';
+import Navbar from 'react-bootstrap/Navbar';
+import Button from 'react-bootstrap/Button';
+import Accordion from 'react-bootstrap/Accordion';
+import Card from 'react-bootstrap/Card';
+
 mapboxgl.accessToken = 'pk.eyJ1Ijoid2NvbmZvcnRpIiwiYSI6ImNrajkyNnk3MjQ4YmEycnFqYm01cWVqamYifQ.P6dAko2hqzbdSnDOZq9IpA'
 
 const _gridId = "BOX";
@@ -22,16 +32,9 @@ const _mBox_Zoom = 8;
 
 const ndbRadius = 100;
 
-
 function MapViewer_v2 () {
     const mapContainerRef = useRef(null);
     console.log("const ==> MapViewer");
-  
-    // Try Axios here!!!
-    //const resultsNWS_Axios = await NwsStationsAsync(_gridId, _gridX, _gridY);
-    //const resultsNWS_Axios = NwsStations(_gridId, _gridX, _gridY);
-    //console.log("NwsStations ==> Axios (MapView) ==> Results");
-    //console.log(resultsNWS_Axios);
   
     // Ok, for this iteration we are only going to 
     // include: lng, lat and zoom in 'state' ascurrently
@@ -40,16 +43,26 @@ function MapViewer_v2 () {
     const [lat, setLat] = useState(_mBox_Lat);
     const [zoom, setZoom] = useState(_mBox_Zoom);
 
+    const [nwsStations, setNwsStations] = useState([]);
+    const [ndbcStations, setNdbcStations] = useState([]);
+    const [stationWindData, setStationWindData] = useState([]);
+
+    const [map_control, setMapControl] = useState();
+
+    var mapSources = ["station-wind-data", "nws-station-data", "ndbc-station-data"];
+    var mapLayers = ["station-wind-layer", "nws-station-layer", "ndbc-station-layer"];
 
   // Initialize map when component mounts
   useEffect(() => {
     const map = new mapboxgl.Map({
+      id: "mapbox_ref",
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/streets-v11',
       center: [lng, lat],
       zoom: zoom
     });
 
+    setMapControl(map);
 
     const getStationsData = async (_gridId, _gridX, _gridY) => {
       const urlNwsStations = `https://api.weather.gov/gridpoints/${_gridId}/${_gridX},${_gridY}/stations`;
@@ -167,7 +180,7 @@ function MapViewer_v2 () {
               if (strippedDescItem.length > 0 ) {
                 //console.log(strippedDescItem)
 
-                // Remove thhe 'degrees' symbol
+                // Remove the 'degrees' symbol
                 var strippedItem = strippedDescItem.replaceAll('&#176;', '');
 
                 if (strippedItem.indexOf('Wind Speed') > -1) {
@@ -587,6 +600,7 @@ function MapViewer_v2 () {
     // 
 
     // Add navigation control (the +/- zoom buttons)
+    map.resize();
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
 
     // https://gis.stackexchange.com/questions/240134/mapbox-gl-js-source-loaded-event
@@ -610,6 +624,44 @@ function MapViewer_v2 () {
     map.on("load", () => {
       // add the data source for new a feature collection with no features
       console.log("map.on('style.load')");
+
+      // The Data must lie in state!!!
+      getStationsData(_gridId, _gridX, _gridY) //;
+      .then(async nwsData => {
+        if (nwsData.type === "FeatureCollection")
+        {
+          setNwsStations(nwsData);
+          //console.log(nwsStations);
+          //console.log("getStationsData (Set State Results) ==> " + nwsData.type);
+        }
+      })
+      .catch(error => {
+        console.log("ERROR ==> getStationsData: " + JSON.stringify(error));
+      });
+  
+      // Call asyc getNdbcStationsData
+      // Set State below or check for error
+      getNdbcStationsData(_mBox_Lat, _mBox_Lng)
+      .then(ndbcData => {
+        setNdbcStations(ndbcData);
+        //console.log(ndbcStations);
+        //console.log("getNdbcStationsData (Set State Results)");
+      })
+      .catch(error => {
+        console.log("ERROR ==> getNdbcStationsData: " + JSON.stringify(error));
+      });
+  
+      // Call asyc getStationWindData
+      // Set State below or check for error
+      getStationWindData(_mBox_Lat, _mBox_Lng)
+      .then(windData => {
+        setStationWindData(windData);
+        //console.log("getStationWindData (Set State Results)");
+        //console.log(stationWindData);
+      })
+      .catch(error => {
+        console.log("ERROR ==> getStationWindData: " + JSON.stringify(error));
+      });
 
       // OK, let's try this!!!!
       
@@ -685,65 +737,69 @@ function MapViewer_v2 () {
 
 
 
-      /* ==> getStationsData  */
-      // Call asyc getStationsData
-      // Set State below or check for error
-      getStationsData(_gridId, _gridX, _gridY) //;
-      .then(nwsStationData => {
-        if (nwsStationData.type === "FeatureCollection")
-        {
-          map.addSource("nws-station-data", {
-            type: "geojson",
-            data: nwsStationData,
-          });
+      // /* ==> getStationsData  */
+      // // Call asyc getStationsData
+      // // Set State below or check for error
+      // getStationsData(_gridId, _gridX, _gridY) //;
+      // .then(nwsStationData => {
+      //   if (nwsStationData.type === "FeatureCollection")
+      //   {
+      //     setNwsStations(nwsStationData); 
+
+      //     map.addSource("nws-station-data", {
+      //       type: "geojson",
+      //       data: nwsStationData,
+      //     });
     
-            // now add the layer, and reference the data source above by name
-            map.addLayer({
-              id: "nws-station-layer",
-              source: "nws-station-data",
-              type: "symbol",
-              layout: {
-                // full list of icons here: https://labs.mapbox.com/maki-icons
-                "icon-image": "castle-15", // this icons on our map
-                "icon-padding": 0,
-                "icon-allow-overlap": true
-              }
-            });
-        }
-      })
-      .catch(error => {
-        console.log(JSON.stringify(error));
-      });
+      //       // now add the layer, and reference the data source above by name
+      //       map.addLayer({
+      //         id: "nws-station-layer",
+      //         source: "nws-station-data",
+      //         type: "symbol",
+      //         layout: {
+      //           // full list of icons here: https://labs.mapbox.com/maki-icons
+      //           "icon-image": "castle-15", // this icons on our map
+      //           "icon-padding": 0,
+      //           "icon-allow-overlap": true
+      //         }
+      //       });
+      //   }
+      // })
+      // .catch(error => {
+      //   console.log(JSON.stringify(error));
+      // });
     
 
-      /* ==> getNdbcStationsData  */
-      // Call asyc getNdbcStationsData
-      // Set State below or check for error
-      getNdbcStationsData(_mBox_Lat, _mBox_Lng)
-      .then(ndbcStationData => {
+      // /* ==> getNdbcStationsData  */
+      // // Call asyc getNdbcStationsData
+      // // Set State below or check for error
+      // getNdbcStationsData(_mBox_Lat, _mBox_Lng)
+      // .then(ndbcStationData => {
 
-          /* NOAA Station Data */
-          map.addSource("ndbc-station-data", {
-            type: "geojson",
-            data:  ndbcStationData,
-          });
+      //   setNdbcStations(ndbcStationData);
 
-            // now add the layer, and reference the data source above by name
-            map.addLayer({
-              id: "ndbc-station-layer",
-              source: "ndbc-station-data",
-              type: "symbol",
-              layout: {
-                // full list of icons here: https://labs.mapbox.com/maki-icons
-                "icon-image": "cemetery-15", // this icons on our map
-                "icon-padding": 0,
-                "icon-allow-overlap": true
-              }
-            });
-      })
-      .catch(error => {
-        console.log(JSON.stringify(error));
-      });
+      //     /* NOAA Station Data */
+      //     map.addSource("ndbc-station-data", {
+      //       type: "geojson",
+      //       data:  ndbcStationData,
+      //     });
+
+      //       // now add the layer, and reference the data source above by name
+      //       map.addLayer({
+      //         id: "ndbc-station-layer",
+      //         source: "ndbc-station-data",
+      //         type: "symbol",
+      //         layout: {
+      //           // full list of icons here: https://labs.mapbox.com/maki-icons
+      //           "icon-image": "cemetery-15", // this icons on our map
+      //           "icon-padding": 0,
+      //           "icon-allow-overlap": true
+      //         }
+      //       });
+      // })
+      // .catch(error => {
+      //   console.log(JSON.stringify(error));
+      // });
     
 
 
@@ -763,15 +819,247 @@ function MapViewer_v2 () {
   }, []); //eslint-disable-line; react-hooks/exhaustive-deps
   // <== useEffect
 
+
+  const openNav = () => {
+    document.getElementById("mySidebar").style.width = "250px";
+    // document.getElementById("mapbox_main").style.marginLeft = "250px";
+  }
+  
+  const closeNav = () => {
+    document.getElementById("mySidebar").style.width = "0";
+    // document.getElementById("mapbox_main").style.marginLeft= "0";
+  }
+
+  const toggleSidebar = () => {
+    // console.log("==> toggleSidebar <==");
+    if (document.getElementById("mySidebar").style.width === "0px"
+        || document.getElementById("mySidebar").style.width === "") {
+       document.getElementById("mySidebar").style.width = "250px";
+    } else {
+      document.getElementById("mySidebar").style.width = "0px";
+    }
+  }
+
+  const loadMapLayer = (layerId) => {
+    console.log("==> loadMapLayer ==> LayerId: " + layerId);
+
+    // Tidy Up!!!
+    // Layers First..
+    for(var i = 0; i < mapLayers.length; i++) { 
+      if (map_control.getLayer(mapLayers[i]) != null)
+          map_control.removeLayer(mapLayers[i]);
+    }
+
+    // Sources next...
+    for(var j = 0; j < mapSources.length; j++) { 
+      if (map_control.getSource(mapSources[j]) != null)
+          map_control.removeSource(mapSources[j]);
+    }
+
+    switch(layerId) {
+      /* Wind Map  */
+      case 1:
+
+        console.log("StationWindData ==> from State");
+        console.log(stationWindData);
+
+        if (stationWindData.type === "FeatureCollection"){
+
+          map_control.addSource("station-wind-data", {
+              type: "geojson",
+              data: stationWindData
+          }); 
+
+            map_control.addLayer({
+              id: "station-wind-layer",
+              source: "station-wind-data",
+              type: "symbol",
+              layout: {
+                // full list of icons here: https://labs.mapbox.com/maki-icons
+                "icon-image": "airport-15", // this icons on our map
+                "icon-padding": 0,
+                "icon-allow-overlap": true,
+                "icon-rotation-alignment": "map",
+                "icon-rotate":{
+                  "property":"wind_direction",
+                  "stops": [
+                    [30, 30],
+                    [60, 60],
+                    [90, 90],
+                    [120, 120],
+                    [150, 150],
+                    [180, 180],
+                    [210, 210],
+                    [240, 240],
+                    [270, 270],
+                    [300, 300],
+                    [330, 330],
+                    [360, 360]
+                  ],
+                }
+              }
+          });
+
+          // change cursor to pointer when user hovers over a clickable feature
+          map_control.on("mouseenter", "station-wind-layer", e => {
+            if (e.features.length) {
+              map_control.getCanvas().style.cursor = "pointer";
+            }
+          });
+
+          // reset cursor to default when user is no longer hovering over a clickable feature
+          map_control.on("mouseleave", "station-wind-layer", () => {
+            map_control.getCanvas().style.cursor = "";
+          });
+
+        }
+       
+        break;
+      /* Stations and Buoys  */
+      case 2:
+
+        console.log("NWS StationData ==> from State");
+        console.log(nwsStations);
+        console.log("NDBC Station Data ==> from State");
+        console.log(ndbcStations);
+
+        // OK, can we find the MapBox Control here???
+        // If not I will be Fucking PISSED!!!!!
+
+        if (nwsStations.type === "FeatureCollection")
+        {
+          map_control.addSource("nws-station-data", {
+            type: "geojson",
+            data: nwsStations,
+          });
+    
+            // now add the layer, and reference the data source above by name
+            map_control.addLayer({
+              id: "nws-station-layer",
+              source: "nws-station-data",
+              type: "symbol",
+              layout: {
+                // full list of icons here: https://labs.mapbox.com/maki-icons
+                "icon-image": "castle-15", // this icons on our map
+                "icon-padding": 0,
+                "icon-allow-overlap": true
+              }
+            });
+        }
+
+        if (ndbcStations.type === "FeatureCollection")
+        {
+          /* NOAA Station Data */
+          map_control.addSource("ndbc-station-data", {
+            type: "geojson",
+            data:  ndbcStations,
+          });
+
+            // now add the layer, and reference the data source above by name
+            map_control.addLayer({
+              id: "ndbc-station-layer",
+              source: "ndbc-station-data",
+              type: "symbol",
+              layout: {
+                // full list of icons here: https://labs.mapbox.com/maki-icons
+                "icon-image": "cemetery-15", // this icons on our map
+                "icon-padding": 0,
+                "icon-allow-overlap": true
+              }
+            });
+        }
+
+        // change cursor to pointer when user hovers over a clickable feature
+        map_control.on("mouseenter", "station-wind-layer", e => {
+          if (e.features.length) {
+            map_control.getCanvas().style.cursor = "pointer";
+          }
+        });
+
+        // reset cursor to default when user is no longer hovering over a clickable feature
+        map_control.on("mouseleave", "station-wind-layer", () => {
+          map_control.getCanvas().style.cursor = "";
+        });
+        
+        break;
+      /* Wind Map  */
+      default:
+        
+    }
+  }
+
   return (
-      <div>
-          <div className='sidebarStyle'>
-          <div>
-              Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
+      <div >
+          <div className='nav-container'>
+              <Navbar expand="lg" variant="dark" bg="dark" >
+                <Button onClick={toggleSidebar} className='openbtn' variant="outline-info">☰</Button>
+                <Navbar.Brand className='navbarLink' href="#home">Fish Finders</Navbar.Brand>
+              </Navbar>      
           </div>
+          <div id='mapbox_main' className='map-wrapper'>
+            <div className='mapInfoStyle'>
+              <div>
+                  Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
+              </div>
+            </div>
+            <div className='map-container' ref={mapContainerRef} />
           </div>
-          <div className='map-container' ref={mapContainerRef} />
+          <div id="mySidebar" className="sidebar">
+            <Accordion className='accordion-custom' defaultActiveKey="0">
+              <Card className='card-custom'>
+                <Accordion.Toggle className='card-header-custom' as={Card.Header} eventKey="0">
+                  Maps
+                </Accordion.Toggle>
+                <Accordion.Collapse eventKey="0">
+                  <Card.Body className='card-body-custom'>
+                    <a href="#" onClick={() => loadMapLayer(1)}>Wind Map</a>
+                    <a href="#" onClick={() => loadMapLayer(2)}>Stations and Buoys</a>
+                  </Card.Body>
+                </Accordion.Collapse>
+              </Card>
+              {/* <Card>
+                <Accordion.Toggle as={Card.Header} eventKey="1">
+                  Click me!
+                </Accordion.Toggle>
+                <Accordion.Collapse eventKey="1">
+                  <Card.Body>Hello! I'm another body</Card.Body>
+                </Accordion.Collapse>
+              </Card> */}
+            </Accordion>
+
+
+            {/* <a href="#" className="closebtn" onClick={closeNav}>×</a> */}
+            {/* <a href="#">Wind Map</a> */}
+            {/* <a href="#">Stations and Buoys</a> */}
+            {/* <a href="#">Clients</a> */}
+            {/* <a href="#">Contact</a> */}
+          </div>
       </div>
+        // <div className='nopadding'>
+        //   <Row>
+        //     <Col xs={12}>
+        //      {/* <div className='nav-container'> */}
+        //        <Navbar expand="lg" variant="dark" bg="dark">
+        //          <Navbar.Brand left-padding='10' href="#home">Fish Finders</Navbar.Brand>
+        //        </Navbar>      
+        //      {/* </div> */}
+        //     </Col>
+        //   </Row>
+        //   <Row>
+        //     <Col xs={1}>
+        //       buttons
+        //     </Col>
+        //     <Col xs={11}>
+        //       <div className='sidebarStyle'>
+        //         <div>
+        //             Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
+        //         </div>
+        //       </div>
+        //       <div className='map-container' ref={mapContainerRef}>
+        //       </div>
+        //     </Col>
+        //   </Row>
+        // </div>
       );
 };
     

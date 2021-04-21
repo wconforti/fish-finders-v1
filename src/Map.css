@@ -1,13 +1,44 @@
+
 /* Mapbox styles */
+.map-wrapper {
+  /* position 'relative' DOES NOT WORK  */
+  /* here with React!!!                */
+  /* position: relative; */
+  position: fixed;
+  transition: margin-left .5s;
+  padding: 16px;
+  width: 100% !important;
+  height: 90% !important;
+}
+
 .map-container {
-    position: absolute;
+  position: absolute;
+  top: 0; bottom: 0;
+  right: 0;  left: 0;
+  width:100%;
+}  
+
+.navbarLink {
+  padding-left:10px;
+}
+
+/* Right-justified css */
+.mapInfoStyle {
+    position: relative;
     top: 0;
-    bottom: 0;
     left: 0;
-    right: 0;
+    /* margin: 12px; */
+    float: right;
+    margin-right: 45px;
+    background-color: #404040;
+    color: #ffffff;
+    z-index: 1 !important;
+    padding: 6px;
+    font-weight: bold;
   }
 
-  .sidebarStyle {
+  /* Left-justified css */
+  /* .mapInfoStyle {
     display: inline-block;
     position: absolute;
     top: 0;
@@ -18,17 +49,117 @@
     z-index: 1 !important;
     padding: 6px;
     font-weight: bold;
-  }
+  } */
 
-  .buttonPanelStyle {
-    display: inline-block;
-    position: absolute;
-    top: 0;
-    left: 0;
-    margin: 12px;
-    background-color: #404040;
-    color: #ffffff;
-    z-index: 1 !important;
-    padding: 6px;
-    font-weight: bold;
-  }
+/* Side Bar Menu */
+.sidebar {
+  height: 100%;
+  width: 250px;
+  position: fixed;
+  z-index: 1;
+  top: 55px;
+  left: -250px;
+  background-color: #fff;
+  overflow-x: hidden;
+  transition: 0.5s;
+}
+
+.sidebarContainer { 
+  float:left;
+}
+
+.sidebar-button {
+  position: fixed;
+  transition: 0.5s;
+  margin-left: 0px;
+  padding: 0px;
+}
+
+.sidebar a {
+  /* padding: 8px 8px 8px 32px; */
+  padding: 12px 12px 12px 12px;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  color: #111;
+  display: block;
+  transition: 0.3s;
+}
+
+.sidebar a:hover {
+  color: #f1f1f1;
+}
+
+.sidebar .closebtn {
+  position: absolute;
+  top: 0;
+  right: 25px;
+  font-size: 36px;
+  margin-left: 50px;
+}
+
+.openbtn {
+  font-size: 15px;
+  cursor: pointer;
+  background-color: #111;
+  color: white;
+  padding: 6px 12px 8px 10px;
+  text-align: center;
+  border: none;    
+  /* position:absolute; */
+  /* top:5px; */
+  /* left:5px; */
+  z-index: 1;
+  border-bottom-right-radius: 3px; 
+  border-top-right-radius: 3px; 
+
+  border-bottom-left-radius: 0px; 
+  border-top-left-radius: 0px; 
+}
+
+.openbtn:hover {
+  background-color: #444;
+}
+
+
+/* Accordion ands Cards */
+.accordion-custom {
+  border: none;
+}
+
+.card-custom {
+  background-color: #343A40;
+  background-clip: border-box;
+  border-radius: 0;
+  border-radius: none;
+  /* border: 1px solid rgba(0,0,0,.125); */
+  /* border-radius: .25rem; */
+}
+
+.card-header-custom {
+  color: #fff;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 500;
+  background-color: rgba(52,58,64,.03);
+  border-bottom: 5px solid #111;
+  border-radius: 0;
+}
+
+.card-body-custom {
+  padding:10px;
+  background-color: #fff;
+}
+
+/* .card-body-custom a {
+  font-size: 16px;
+  font-weight: 500;
+  background-color: #fff;
+}
+
+.card-body-custom a .selected {
+  font-size: 16px;
+  font-weight: 500;
+  background-color: #fff;
+  border: 1px solid #111;
+} */
