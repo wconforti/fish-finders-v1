@@ -3,6 +3,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import './../Map.css';
 
+import { area, polygon, centroid, center }  from '@turf/turf';
 import axios from 'axios';
 import xml2js from 'xml2js';
 
@@ -17,12 +18,16 @@ import Accordion from 'react-bootstrap/Accordion';
 import Card from 'react-bootstrap/Card';
 
 import StationDetailsPopup from "./../components/StationDetailsPopup";
+import MarineForecastPopup from "./../components/MarineForecastPopup";
+import MarineForecastSlider from "./../components/MarineForecastSlider";
 
 mapboxgl.accessToken = 'pk.eyJ1Ijoid2NvbmZvcnRpIiwiYSI6ImNrajkyNnk3MjQ4YmEycnFqYm01cWVqamYifQ.P6dAko2hqzbdSnDOZq9IpA'
 
 const _gridId = "BOX";
 const _gridX = 59;
 const _gridY = 28;
+
+const _nws_Region = "ER";
 
 //const urlNwsPoints = `https://api.weather.gov/points/${_mboxLat},${_mboxLng}`;
 //const urlNwsStations = `https://api.weather.gov/gridpoints/${_gridId}/${_gridX},${_gridY}/stations`;
@@ -50,11 +55,13 @@ function MapViewer_v3 () {
     const [ndbcStations, setNdbcStations] = useState([]);
     const [stationWindData, setStationWindData] = useState([]);
     const [surfaceSeaTempData, setSurfaceSeaTempData] = useState([]);
+    const [nwsMarineForecasts, setNwsMarineForecasts] = useState([]);
 
     const [map_control, setMapControl] = useState();
 
-    var mapSources = ["station-wind-data", "nws-station-data", "ndbc-station-data", "ndbc-ship-data", "sea-temp-data"];
-    var mapLayers = ["station-wind-layer", "nws-station-layer", "ndbc-station-layer", "ndbc-ship-layer", "sea-temp-layer", "sea-temp-point"];
+    var mapSources = ["station-wind-data", "nws-station-data", "ndbc-station-data", "ndbc-ship-data", "sea-temp-data", "marine-forecast-data", "marine-forecast-zone-points"];
+    var mapLayers = ["station-wind-layer", "nws-station-layer", "ndbc-station-layer", "ndbc-ship-layer", "sea-temp-layer", "sea-temp-point", "zone-label-style-layer", "marine-forecast-layer", "marine-forecast-fill-layer"];
+    var mapImages = ["comp_needle"];
 
     var toolTip = new mapboxgl.Popup({
       closeButton: false,
@@ -596,6 +603,25 @@ function MapViewer_v3 () {
       var stat_airPressure_Text = null;
       var stat_waterTemp_Text  = null;
 
+      var station_id = null;
+      var stat_lon_coord = null;
+      var stat_lat_coord = null;
+
+      var stat_Identifier = null;
+      var stat_Name = null;
+      var stat_LastUpdate = null;
+      var stat_TextDesc = null;
+      var stat_AirTemp_C = null;
+      var stat_AirTemp_F = null;       // in Celsius
+      var stat_AirPressure_Mb = null;
+
+      // Wind Data - returned in KPH!!!
+      var stat_windDirection_Degrees = null;
+      var stat_windDirection = null;
+      var stat_windSpeed = null;
+      var stat_windGust = null;
+      
+
       /****************/
       /* NWS Stations */
       /****************/
@@ -643,32 +669,16 @@ function MapViewer_v3 () {
         // ==> Air Temperature: 39&#176;F (3.7&#176;C)
         // ==> Water Temperature: 50&#176;F (10.1&#176;C)
 
-        // Set Default Text values here:
-        stat_Updated_Text = "Updated: N/A";
-        stat_windDir_Text = "Wind Direction: N/A";
-        stat_windInfo_Text = "Wind Speed: N/A";
-        stat_gustInfo_Text = "Gusting: N/A";
-        stat_airTemp_Text = "Air Temperature: N/A";
-        stat_airPressure_Text = "Atmospheric Pressure: N/A";
-        stat_waterTemp_Text  = "Water Temperature: N/A";
+        // // Set Default Text values here:
+        // stat_Updated_Text = "Updated: N/A";
+        // stat_windDir_Text = "Wind Direction: N/A";
+        // stat_windInfo_Text = "Wind Speed: N/A";
+        // stat_gustInfo_Text = "Gusting: N/A";
+        // stat_airTemp_Text = "Air Temperature: N/A";
+        // stat_airPressure_Text = "Atmospheric Pressure: N/A";
+        // stat_waterTemp_Text  = "Water Temperature: N/A";
 
-        var station_id = null;
-        var stat_lon_coord = null;
-        var stat_lat_coord = null;
-
-        var stat_Identifier = null;
-        var stat_Name = null;
-        var stat_LastUpdate = null;
-        var stat_TextDesc = null;
-        var stat_AirTemp_C = null;
-        var stat_AirTemp_F = null;       // in Celsius
-        var stat_AirPressure_Mb = null;
-
-        // Wind Data - returned in KPH!!!
-        var stat_windDirection_Degrees = null;
-        var stat_windDirection = null;
-        var stat_windSpeed = null;
-        var stat_windGust = null;
+        //console.log("NWS reset ==> stat_windInfo_Text ==> " + stat_windInfo_Text);
 
         // if (key === "observationStations"){
         //   console.log("Observation Stations: ==> ");
@@ -693,6 +703,23 @@ function MapViewer_v3 () {
             //console.log("Station Data: " + stationData);
 
             Object.keys(stationData).map(async (key1) => {
+
+              // Set Default Text values here:
+              stat_Updated_Text = "Updated: N/A";
+              stat_windDir_Text = "Wind Direction: N/A";
+              stat_windInfo_Text = "Wind Speed: N/A";
+              stat_gustInfo_Text = "Gusting: N/A";
+              stat_airTemp_Text = "Air Temperature: N/A";
+              stat_airPressure_Text = "Atmospheric Pressure: N/A";
+              stat_waterTemp_Text  = "Water Temperature: N/A";
+
+              // Wind Data - returned in KPH!!!
+              stat_windDirection_Degrees = null;
+              stat_windDirection = null;
+              stat_windSpeed = null;
+              stat_windGust = null;
+
+              // Send raw Station Data to the console
               //console.log(key1, stationData[key1]);
 
               // We need the geometry key to access the co-ordinates
@@ -796,7 +823,6 @@ function MapViewer_v3 () {
             // Wind Direction
             // Wind Direction (N, S, SW, etc.) from Degrees
             // stat_windDirection <== (N, S, SW, etc.) 
-            //console.log("stat_windDirection_Degrees ==> " + stat_windDirection_Degrees);
             if (stat_windDirection !== null)
             {
               // Now that we have the Wind FROM Direction in degrees,
@@ -808,14 +834,14 @@ function MapViewer_v3 () {
 
               stat_windDir_Text = "Wind Direction: " + compassDir + " (" + stat_windDirection + "°)";
             }
-
+            
             // Add NWS Station data. if it qualifies.
             //
             // Check for BOTH wind_direction AND sta_windSpeed
             // values, otherwise skip on down...
             var stat_wind_mph = 0;
             var stat_wind_knots = 0;
-            //console.log("stat_windSpeed (NDBC) ==> " + stat_windSpeed);
+            //console.log("NWS (" + stat_Name + "("+ station_id + "))  stat_windSpeed ==> " + stat_windSpeed);
             if (stat_windSpeed !== null)
             {
               // Convert km/h to knots !!!
@@ -832,6 +858,10 @@ function MapViewer_v3 () {
               stat_windInfo_Text = "Wind Speed: " + stat_wind_knots + " knots (" + stat_wind_mph + " mph)";
             }
 
+            //console.log("NWS (" + stat_Name + "("+ station_id + "))  stat_windInfo_Text ==> " + stat_windInfo_Text);
+            //console.log("NWS (" + stat_Name + "("+ station_id + "))  stat_wind_knots ==> " + stat_wind_knots);
+            //console.log("NWS (" + stat_Name + "("+ station_id + "))  stat_wind_mph ==> " + stat_wind_mph);
+
             // Three marker images
             //  ==> wind_dir
             //  ==> wind_dir_stale
@@ -844,7 +874,7 @@ function MapViewer_v3 () {
             // values, otherwise skip on down...
 
             // Create a 'windDataFeaturesList' object and push it into the return object
-            //console.log("Push ==> NWS Station: " + station_id);
+            //console.log("Push ==> NWS (" + stat_Name + "("+ station_id + "))");
             windDataFeaturesList.push({
               type: 'Feature',
               geometry: {
@@ -857,7 +887,7 @@ function MapViewer_v3 () {
                 station_type: "NWS",
                 marker_Img: marker_Img,
                 wind_direction: stat_windDirection_Degrees,    // For directional markers
-                wind_speed: stat_wind_mph,  // For directional markers
+                wind_speed: stat_wind_knots,  // For directional markers
 
                 // For Display 
                 stat_Updated: stat_Updated_Text,    
@@ -1126,167 +1156,353 @@ function MapViewer_v3 () {
      * 
      *****************************************************************************/
     const getSeaSurfaceTempData = async (_mboxLat, _mboxLng) => {
+      // Return object
+      const seaTempDataFeaturesList = [];
 
-        // Return object
-        const seaTempDataFeaturesList = [];
+      /************************/
+      /* NOAA (NDBC) Stations */
+      /************************/
+      console.log("NOAA (NDBC) Stations ==> ");
+      const urlNdbcStations = `http://localhost:8080/?lat=${_mboxLat}N&lon=${(_mboxLng * -1)}W&radius=100`;
+      //console.log("getNdbcStationsData URL ==> " + urlNdbcStations);
 
-        /************************/
-        /* NOAA (NDBC) Stations */
-        /************************/
-        console.log("NOAA (NDBC) Stations ==> ");
-        const urlNdbcStations = `http://localhost:8080/?lat=${_mboxLat}N&lon=${(_mboxLng * -1)}W&radius=100`;
-        //console.log("getNdbcStationsData URL ==> " + urlNdbcStations);
-  
-        // ==> axios w/o Set State <==
-        const response = await axios(urlNdbcStations);
-        //return await response.data;
-        const data = await response.data;
-        //console.log(data);
-  
-        // The result object below will be in JSON format
-        var parseString = require('xml2js').parseString;
-        parseString(data, function (err, result) {
-          //console.log(util.inspect(result, false, null));
-          //var resultFull = util.inspect(result, false, null);
-  
-          // Create Feature Collection here:
-          // OK, result object above will be in JSON format
-  
-          // Re-name the 'georss:point' node
-          var resultStringInit = JSON.stringify(result); 
-          var resultString = resultStringInit.replaceAll('georss:point','geopoint');
-          const valuesArray = JSON.parse(resultString);
-  
-          // Drill-down to the channel level
-          // There should be only ONE channel node
-          // Properties Spread Notation
-          var stationData = [...valuesArray.rss.channel];
-  
-          // Iterate through the Station data
-          stationData[0].item.map(async (station) => {
-              // Skip all 'SHIP' title entries
-              if (station.title.toString().toLowerCase() !== 'ship') {
-              //console.log('geopoint: ' + station.title);
-            
-              // ==> id
-              // From station.link
-              var checkLinkIndex = station.link.toString().trim().lastIndexOf("station=");
-              var stationId = station.link.toString().trim().substring(checkLinkIndex + 8);
-              var statId = stationId.toUpperCase();
-              var stat_title = station.title.toString();
-  
-              // Attempt to grab the NOAA (NDBC) Id to remove
-              // it from the Station title (Name)
-              //var regExp_title = /\-([^-]+)\-/
-              var regExp_title = /-([0-9\s]+)-/;
-              var title_match = regExp_title.exec(stat_title);
-            
-              if (title_match != null) {
-                let t_Match = title_match[0];
-                stat_title = stat_title.replace(t_Match, '-');
-              }
-    
-              // ==> coords
-              var coords = station.geopoint.toString().split(" ");
-              // ==> latitude
-              var sta_latitude = coords[0];
-              var latitude = parseFloat(sta_latitude.toString(), 2);
-              // ==> longitude
-              var sta_longitude = coords[1];
-              var longitude = parseFloat(sta_longitude.toString(), 2);
-              
-              let water_temperature_F = null;
-              let water_temperature_C = null;
-  
-              //OK, now that we have it, how the hell do I parse out the Description data!!!!
-              var parseDesc = station.description.toString().split('<br />');
-              for (let i=0; i < parseDesc.length; i++) {
-                //console.log(parseDesc[i]);
-  
-                // Get her all warshed out!
-                var strippedDescItem = parseDesc[i].replaceAll('<strong>','').replaceAll('</strong>','').trim();
-                if (strippedDescItem.length > 0 ) {
-                  //console.log(strippedDescItem)
+      // ==> axios w/o Set State <==
+      const response = await axios(urlNdbcStations);
+      //return await response.data;
+      const data = await response.data;
+      //console.log(data);
 
-                  //<strong>Water Temperature:</strong> 46&#176;F (7.6&#176;C)<br />
-  
-                  // Remove the 'degrees' symbol
-                  var strippedItem = strippedDescItem.replaceAll('&#176;', '');
-  
-                  //Water Temperature: 46F (7.6C)
-                  if (strippedItem.indexOf('Water Temperature') > -1) {
-                    var chkItem_wt = strippedItem.toString().split(":");
+      // The result object below will be in JSON format
+      var parseString = require('xml2js').parseString;
+      parseString(data, function (err, result) {
+        //console.log(util.inspect(result, false, null));
+        //var resultFull = util.inspect(result, false, null);
 
-                    var chk_water_temp = chkItem_wt[1];
+        // Create Feature Collection here:
+        // OK, result object above will be in JSON format
 
-                    // Get the Celsius data first
-                    var regExp_C = /\(([^)]+)\)/;
-                    var celsius_matches = regExp_C.exec(chk_water_temp);
-                    if (celsius_matches != null) {
-                        water_temperature_C = celsius_matches[1].replaceAll('C','').trim();
-                    }
+        // Re-name the 'georss:point' node
+        var resultStringInit = JSON.stringify(result); 
+        var resultString = resultStringInit.replaceAll('georss:point','geopoint');
+        const valuesArray = JSON.parse(resultString);
 
-                    // Get the Fahrenheit data first
-                    var regExp_F = /^([0-9\s]+)F/;
-                    var fahr_matches = regExp_F.exec(chk_water_temp);
-                    if (fahr_matches != null) {
-                        water_temperature_F = fahr_matches[1];
-                    }
-                  } 
-                }
-              }
-  
-              if (!(water_temperature_F == null && water_temperature_C == null))
-              {
-                // Create a 'seaTempDataFeaturesList' object and Promise as a return object
-                seaTempDataFeaturesList.push({
-                  type: 'Feature',
-                  geometry: {
-                    type: 'Point',
-                    coordinates: [longitude, latitude],
-                  },
-                  properties: {
-                    id: statId,
-                    name: stat_title,
-                    type: "NOAA",
-                    is_Buoy: true,
-                    water_temp_F: water_temperature_F,
-                    water_temp_C: water_temperature_C,
-                  },
-                });
-              }
-  
+        // Drill-down to the channel level
+        // There should be only ONE channel node
+        // Properties Spread Notation
+        var stationData = [...valuesArray.rss.channel];
+
+        // Iterate through the Station data
+        stationData[0].item.map(async (station) => {
+            // Skip all 'SHIP' title entries
+            if (station.title.toString().toLowerCase() !== 'ship') {
+            //console.log('geopoint: ' + station.title);
+          
+            // ==> id
+            // From station.link
+            var checkLinkIndex = station.link.toString().trim().lastIndexOf("station=");
+            var stationId = station.link.toString().trim().substring(checkLinkIndex + 8);
+            var statId = stationId.toUpperCase();
+            var stat_title = station.title.toString();
+
+            // Attempt to grab the NOAA (NDBC) Id to remove
+            // it from the Station title (Name)
+            //var regExp_title = /\-([^-]+)\-/
+            var regExp_title = /-([0-9\s]+)-/;
+            var title_match = regExp_title.exec(stat_title);
+          
+            if (title_match != null) {
+              let t_Match = title_match[0];
+              stat_title = stat_title.replace(t_Match, '-');
             }
   
-          }); // Iterate through the Station data
-        });
-  
-        var FeatureCollection = {
-          type: "FeatureCollection",
-          features: seaTempDataFeaturesList
+            // ==> coords
+            var coords = station.geopoint.toString().split(" ");
+            // ==> latitude
+            var sta_latitude = coords[0];
+            var latitude = parseFloat(sta_latitude.toString(), 2);
+            // ==> longitude
+            var sta_longitude = coords[1];
+            var longitude = parseFloat(sta_longitude.toString(), 2);
+            
+            let water_temperature_F = null;
+            let water_temperature_C = null;
+
+            //OK, now that we have it, how the hell do I parse out the Description data!!!!
+            var parseDesc = station.description.toString().split('<br />');
+            for (let i=0; i < parseDesc.length; i++) {
+              //console.log(parseDesc[i]);
+
+              // Get her all warshed out!
+              var strippedDescItem = parseDesc[i].replaceAll('<strong>','').replaceAll('</strong>','').trim();
+              if (strippedDescItem.length > 0 ) {
+                //console.log(strippedDescItem)
+
+                //<strong>Water Temperature:</strong> 46&#176;F (7.6&#176;C)<br />
+
+                // Remove the 'degrees' symbol
+                var strippedItem = strippedDescItem.replaceAll('&#176;', '');
+
+                //Water Temperature: 46F (7.6C)
+                if (strippedItem.indexOf('Water Temperature') > -1) {
+                  var chkItem_wt = strippedItem.toString().split(":");
+
+                  var chk_water_temp = chkItem_wt[1];
+
+                  // Get the Celsius data first
+                  var regExp_C = /\(([^)]+)\)/;
+                  var celsius_matches = regExp_C.exec(chk_water_temp);
+                  if (celsius_matches != null) {
+                      water_temperature_C = celsius_matches[1].replaceAll('C','').trim();
+                  }
+
+                  // Get the Fahrenheit data first
+                  var regExp_F = /^([0-9\s]+)F/;
+                  var fahr_matches = regExp_F.exec(chk_water_temp);
+                  if (fahr_matches != null) {
+                      water_temperature_F = fahr_matches[1];
+                  }
+                } 
+              }
+            }
+
+            if (!(water_temperature_F == null && water_temperature_C == null))
+            {
+              // Create a 'seaTempDataFeaturesList' object and Promise as a return object
+              seaTempDataFeaturesList.push({
+                type: 'Feature',
+                geometry: {
+                  type: 'Point',
+                  coordinates: [longitude, latitude],
+                },
+                properties: {
+                  id: statId,
+                  name: stat_title,
+                  type: "NOAA",
+                  is_Buoy: true,
+                  water_temp_F: water_temperature_F,
+                  water_temp_C: water_temperature_C,
+                },
+              });
+            }
+
+          }
+
+        }); // Iterate through the Station data
+      });
+
+      var FeatureCollection = {
+        type: "FeatureCollection",
+        features: seaTempDataFeaturesList
+      }
+
+      console.log(" ==> Sea Tempurature  Loaded <==");
+
+      return Promise.resolve(FeatureCollection);
+    };
+
+
+    const getSstFtpTifData = async () => {
+
+      let _year = 2021;
+      let _month = 4;
+      let _day = 4;
+
+      const ftpSstTifData = `https://ftp.cpc.ncep.noaa.gov/GIS/sst_oiv2/sst_io.${_year}${_month}${_day}.tif.zip`;
+
+      // ==> axios w/o Set State <==
+      const response = await axios(ftpSstTifData);
+      const data = await response.data;
+      console.log("==> Ftp Sea Surface Temperature zip file <==");
+      
+      return data;
+    };
+
+    /****************************************************************************
+     * 
+     *  This function will compile Feature Collection of NWS Marine 
+     *  Forecast data from NWS Marine forcast Zones that will include:
+     * 
+     *****************************************************************************/
+
+    const getNwsMarineForecastData = async (_region) => {
+      const urlNwsForecastZones = `https://api.weather.gov/zones/marine?region=${_region}&include_geometry=true`;
+      //console.log("urlNwsForecastZones:= " + urlNwsForecastZones);
+
+      // Return object
+      const nwsMarineZonesFeaturesList = [];
+
+      // ==> axios w/o Set State <==
+      const resp_NwsZones = await axios(urlNwsForecastZones);
+      const nwsZones = await resp_NwsZones.data;
+
+      // console.log("nwsZones ==> ");
+      // console.log(nwsZones);
+
+      // OK, find the 'observationStations' array data
+      // This notation is better that the hard-coded index option.
+      console.log("Parse NWS Forecast Zones ==> ");
+      Object.keys(nwsZones).map(async (key) => {
+        //console.log(key, nwsZones[key]);
+   
+        // Set Default Text values here:
+        var zone_id = null;
+        var zone_type = null;
+        var zone_Name = null;
+
+        var zone_poly_coords = null;
+
+        if (key === "features"){
+          //console.log("features: ==> ");
+          nwsZones[key].map(async (zone_Features) => {
+            //console.log("zone_Features ==>");
+            //console.log(zone_Features);
+
+            /******************************************************/
+            // Retrieve URL to get the Zone Data  
+            // ==> MultiPolygon coordinates
+            // 
+
+            var forecastUrl = zone_Features.id.toString();
+            //console.log("forecastUrl: " + forecastUrl);
+
+            // ==> axios w/o Set State <==
+            const zoneResponse = await axios(forecastUrl);
+            //return await response.data;
+            const zoneData = await zoneResponse.data;
+            //console.log("Zone Data: " + zoneData);
+
+            Object.keys(zoneData).map(async (key1) => {
+              //console.log(key1, zoneData[key1]);
+
+              // We need the geometry key to access the co-ordinates
+              //console.log("zoneData: " + key1);
+              if (key1 === "geometry") {
+
+                zone_poly_coords = zoneData[key1].coordinates;
+                // console.log("zone_poly_coords: ==>  ");
+                // console.log(zoneData[key1].coordinates);
+
+              };
+
+              // We need the properties key to access 
+              if (key1 === "properties") {
+
+                zone_id = zoneData[key1].id.toString();
+                zone_type = zoneData[key1].type;
+                zone_Name = zoneData[key1].name;
+
+                //console.log("zone_id ==> " + zone_id);
+                //console.log("zone_type ==> " + zone_type);
+                //console.log("zone_Name ==> " + zone_Name);
+              }
+
+            }); // zoneData
+
+            // console.log("zone_Name ==> " + zone_Name);
+            // console.log(zone_poly_coords);
+
+            //station_id = zone_Features.properties.stationIdentifier;
+            //stat_Identifier = zone_Features.properties.stationIdentifier;
+            //stat_Name = zone_Features.properties.name;
+
+            // Add NWS Zone data. if it qualifies.
+            // Create a FeatureCollection object and push it into the return object
+            //console.log("Push ==> NWS Zone: " + zone_id);
+
+            // var polygon = turf.polygon(zone_poly_coords);
+            // var polygon = turf.polygon([[[-81, 41], [-88, 36], [-84, 31], [-80, 33], [-77, 39], [-81, 41]]]);
+            // console.log("polygon ==> ");
+            // console.log(polygon);
+
+            // Add a feature
+            var thisFeature = {
+              'type': 'Feature',
+              'properties': {
+                id: zone_id,
+                zone_name: zone_Name,
+                zone_type: zone_type
+              },
+              'geometry': {
+                  type: 'MultiPolygon',
+                  coordinates: zone_poly_coords
+              }
+            };
+
+            //console.log(thisFeature);
+            // console.log("thisCentroid ==> " +  zone_id + ': ' + zone_Name);
+            //var thisCentroid = centroid(thisFeature);
+            // console.log("thisCentroid ==> ");
+            // console.log(thisCentroid);
+
+            //nwsMarineZonesFeaturesList.push(thisFeature);
+
+            // Journey to the Center of the MultiPolygon!
+            var max_area_polygon;
+            var max_area = 0 ;
+
+            // Parse through the polygons in the 'zone_poly_coords' Object
+            // Use the turf polygon and area methods to identify the 
+            // Largest polygon
+            for(var poly in (zone_poly_coords)){                              
+                var thisPoly = polygon((zone_poly_coords)[poly])
+                var thisArea = area(thisPoly); 
+
+                if(thisArea > max_area){
+                    max_area = thisArea;
+                    max_area_polygon = thisPoly; // polygon with the largest area
+                }
+            }
+
+            // Use the Largest polygon identified above,
+            // Identify its 'center' point then use
+            // its coordinates to add a Point Feature to the
+            // Feature collection which will be utilized later 
+            // to add the style label to display the Zone Id
+            var thisCentroid = centroid(max_area_polygon);
+            var centerOfMass = center(max_area_polygon);
+
+            nwsMarineZonesFeaturesList.push(
+            {
+              type: 'Feature',
+              geometry: {
+                type: 'MultiPolygon',
+                coordinates: zone_poly_coords,
+              },
+              properties: {
+                id: zone_id,
+                zone_name: zone_Name,
+                zone_type: zone_type
+              },
+            },
+            {
+              type: 'Feature',
+                geometry: {
+                  type: 'Point',
+                  coordinates: centerOfMass.geometry.coordinates
+                },
+                properties: {
+                  id: zone_id,
+                  zone_name: zone_Name,
+                  zone_type: zone_type
+                }
+              },
+            );
+
+            //console.log("PUSH ==> " +  zone_id + ': ' + zone_Name);
+
+          }); //Nws Marine Forecast Zones
         }
-  
-        console.log(" ==> Sea Tempurature  Loaded <==");
-  
-        return Promise.resolve(FeatureCollection);
-      };
+      });
 
+      //console.log("==> NWS Marine Forecast Zones Loaded <==");
 
-      const getSstFtpTifData = async () => {
+      return await Promise.resolve({
+        type: 'FeatureCollection',
+        features: nwsMarineZonesFeaturesList,
+      });
 
-        let _year = 2021;
-        let _month = 4;
-        let _day = 4;
+    };
 
-        const ftpSstTifData = `https://ftp.cpc.ncep.noaa.gov/GIS/sst_oiv2/sst_io.${_year}${_month}${_day}.tif.zip`;
-  
-        // ==> axios w/o Set State <==
-        const response = await axios(ftpSstTifData);
-        const data = await response.data;
-        console.log("==> Ftp Sea Surface Temperature zip file <==");
-        
-        return data;
-      };
 
     // Add navigation control (the +/- zoom buttons)
     map.addControl(new mapboxgl.NavigationControl(), 'top-right');
@@ -1357,14 +1573,24 @@ function MapViewer_v3 () {
         console.log("ERROR ==> getSeaSurfaceTempData: " + JSON.stringify(error));
       });
 
-      // Call asyc getSeaSurfaceTempData
+      // // Call asyc getSeaSurfaceTempData
+      // // Set State below or check for error
+      // getSstFtpTifData()
+      // .then(ftpSeaTempData => {
+      //   setSurfaceSeaTempData(ftpSeaTempData);
+      // })
+      // .catch(error => {
+      //   console.log("ERROR ==> getSeaSurfaceTempData: " + JSON.stringify(error));
+      // });
+
+      // Call asyc getNwsMarineForecastData
       // Set State below or check for error
-      getSstFtpTifData()
-      .then(ftpSeaTempData => {
-        setSurfaceSeaTempData(ftpSeaTempData);
+      getNwsMarineForecastData(_nws_Region)
+      .then(marineData => {
+        setNwsMarineForecasts(marineData);
       })
       .catch(error => {
-        console.log("ERROR ==> getSeaSurfaceTempData: " + JSON.stringify(error));
+        console.log("ERROR ==> getNwsMarineForecastData " + JSON.stringify(error));
       });
 
     });
@@ -1384,16 +1610,30 @@ function MapViewer_v3 () {
   // <== useEffect
 
 /* 'Sliding' Sidebar Menu */
-const toggleSidebar = () => {
-    if (document.getElementById("mySidebar").style.marginLeft === "0px"
-        || document.getElementById("mySidebar").style.marginLeft === "") {
-       document.getElementById("mySidebar").style.marginLeft = "250px";
-       document.getElementById("mySidebarBtn").style.marginLeft = "250px";
+const toggleMenuSidebar = () => {
+    if (document.getElementById("menuSidebar-Left").style.marginLeft === "0px"
+        || document.getElementById("menuSidebar-Left").style.marginLeft === "") {
+       document.getElementById("menuSidebar-Left").style.marginLeft = "250px";
+       document.getElementById("menuSidebarBtn-Left").style.marginLeft = "250px";
     } else {
-      document.getElementById("mySidebar").style.marginLeft = "0px";
-      document.getElementById("mySidebarBtn").style.marginLeft = "0px";
+      document.getElementById("menuSidebar-Left").style.marginLeft = "0px";
+      document.getElementById("menuSidebarBtn-Left").style.marginLeft = "0px";
     }
   }
+
+/* 'Sliding' Forecast Sidebar Menu */
+const toggleForecastSidebar = (isButtonClick = false) => {
+  //console.log("Is Button Click ==> " + isButtonClick);
+  if (isButtonClick) {
+    document.getElementById("forecastSidebar-Right").style.marginRight = "0px";
+  } else if (document.getElementById("forecastSidebar-Right").style.marginRight === "0px"
+      || document.getElementById("forecastSidebar-Right").style.marginRight === ""
+      || document.getElementById("forecastSidebar-Right").style.marginRight ==="400px") {
+     document.getElementById("forecastSidebar-Right").style.marginRight = "400px";
+  } else {
+    document.getElementById("forecastSidebar-Right").style.marginRight = "0px";
+  }
+}
 
 /* Card onClick event to load requested sources/layers */
 const loadMapLayer = (layerId) => {
@@ -1408,7 +1648,7 @@ const loadMapLayer = (layerId) => {
       if (map_control.getLayer(mapLayers[i]) != null)
           map_control.removeLayer(mapLayers[i]);
 
-          console.log("Map Layer ==> " + mapLayers[i]);
+          //console.log("Map Layer ==> " + mapLayers[i]);
     }
 
     // Sources next...
@@ -1418,6 +1658,28 @@ const loadMapLayer = (layerId) => {
 
       console.log("Map Source ==> " + mapSources[j]);
     }
+
+    // Custom images
+    for(var l = 0; l < mapImages.length; l++) { 
+
+      console.log("Has Image ==> " + map_control.hasImage(mapImages[l]));
+
+      if (map_control.hasImage(mapImages[l]))
+          map_control.removeImage(mapImages[l]);
+
+      console.log("Map Image ==> " + mapImages[l]);
+    }
+
+    // // // Custom images
+    // // for(var l = 0; l < mapImages.length; l++) { 
+    //   map_control.removeImage(
+    //     'comp_needle',
+    //     function (error, image) {
+    //       if (error) throw error;
+    //     }
+    //   );
+    // //   console.log("Map Image ==> " + mapImages[l]);
+    // // }
 
     switch(layerId) {
       /* Wind Map  */
@@ -1433,52 +1695,80 @@ const loadMapLayer = (layerId) => {
 
           // var popUpRef = new mapboxgl.Popup({ offset: 15 });
 
-          map_control.addSource("station-wind-data", {
-              type: "geojson",
-              data: stationWindData
-          }); 
+          // Load an image from an external URL.
+          map_control.loadImage(
+            "../north-arrow_med.png",
+            function (error, image) {
+            if (error) throw error;
 
-            map_control.addLayer({
-              id: "station-wind-layer",
-              source: "station-wind-data",
-              type: "symbol",
-              layout: {
-                // full list of icons here: https://labs.mapbox.com/maki-icons
-                "icon-image": "airport-15", // this icons on our map
-                "icon-padding": 0,
-                "icon-allow-overlap": true,
-                "icon-rotation-alignment": "map",
-                "icon-rotate":{
-                  "property":"wind_direction",
-                  "stops": [
-                    [30, 30],
-                    [60, 60],
-                    [90, 90],
-                    [120, 120],
-                    [150, 150],
-                    [180, 180],
-                    [210, 210],
-                    [240, 240],
-                    [270, 270],
-                    [300, 300],
-                    [330, 330],
-                    [360, 360]
-                  ],
-                  // "layout": {
-                  //   "text-field": FeatureCollection.features[i].properties.WIND_SPEED > 0 ? 'E' : '5',
-                  //   "text-font": ['ESRI Dimensioning Regular'],
-                  //   "text-rotate": FeatureCollection.features[i].properties.WIND_DIRECT,
-                  //   "text-rotation-alignment": 'map',
-                  //   "text-size": windSize(FeatureCollection.features[i])
-                  // },
-                  // 'paint': {
-                  //   'fill-color': '#088',
-                  //   'fill-opacity': 0.8,
-                  //   'fill-outline-color': '#000'
-                  // },
-                }
+                // Add the image to the map style.
+                map_control.addImage('comp_needle', image);
+
+                map_control.addSource("station-wind-data", {
+                    type: "geojson",
+                    data: stationWindData
+                }); 
+
+                map_control.addLayer({
+                  id: "station-wind-layer",
+                  source: "station-wind-data",
+                  type: "symbol",
+                  layout: {
+                    // full list of icons here: https://labs.mapbox.com/maki-icons
+                    //"icon-image": "airport-15", // this icons on our map
+
+                    // 'text-justify': 'auto',
+                    //"text-field": FeatureCollection.features[i].properties.WIND_SPEED > 0 ? 'E' : '5',
+                    //"text-font": ['ESRI Dimensioning Regular'],
+                    //"text-rotate": FeatureCollection.features[i].properties.WIND_DIRECT,
+                    
+                    //"text-size": windSize(FeatureCollection.features[i]),
+
+                    // Text settings
+                    "text-rotation-alignment": "map",
+                    "text-field": ["get", "wind_speed"],
+                    "text-variable-anchor": ["top", "bottom", "left", "right"],
+                    "text-radial-offset": 0.5,
+
+                    // Icon (images) settings
+                    "icon-image": "comp_needle", // this icons on our map
+                    "icon-padding": 0,
+                    'icon-size': 0.23,
+                    "icon-allow-overlap": true,
+                    "icon-rotation-alignment": "map",
+                    "icon-rotate":{
+                      "property":"wind_direction",
+                      "stops": [
+                        [30, 30],
+                        [60, 60],
+                        [90, 90],
+                        [120, 120],
+                        [150, 150],
+                        [180, 180],
+                        [210, 210],
+                        [240, 240],
+                        [270, 270],
+                        [300, 300],
+                        [330, 330],
+                        [360, 360]
+                      ],
+                      // "layout": {
+                      //   "text-field": FeatureCollection.features[i].properties.WIND_SPEED > 0 ? 'E' : '5',
+                      //   "text-font": ['ESRI Dimensioning Regular'],
+                      //   "text-rotate": FeatureCollection.features[i].properties.WIND_DIRECT,
+                      //   "text-rotation-alignment": 'map',
+                      //   "text-size": windSize(FeatureCollection.features[i])
+                      // },
+                      // 'paint': {
+                      //   'fill-color': '#088',
+                      //   'fill-opacity': 0.8,
+                      //   'fill-outline-color': '#000'
+                      // },
+                    }
+                  }
+                });
               }
-          });
+          );
 
           // change cursor to pointer when user hovers over a clickable feature
           map_control.on("mouseenter", "station-wind-layer", e => {
@@ -1913,6 +2203,168 @@ const loadMapLayer = (layerId) => {
             // });
         }
 
+      /* NWS Marine Forecast Map  */
+      case 4:
+
+        console.log("NwsMarineForecasts ==> from State");
+        if (nwsMarineForecasts.type === "FeatureCollection") {
+
+          var toolTip_Marine = new mapboxgl.Popup({
+            closeButton: false,
+            closeOnClick: false
+          });
+
+          // var popUpRef = new mapboxgl.Popup({ offset: 15 });
+
+            const multiPolyFeaturesList = [];
+            const pointsFeaturesList = [];
+
+            // Bucket the retrieved features by geometry type
+            // ==> MultiPolygon 
+            // ==> Point - to place Zone Id labels
+            Object.keys(nwsMarineForecasts).map(async (key) => {
+              if (key === "features") {
+                nwsMarineForecasts[key].map(async (zoneFeatures) => {
+                  if (zoneFeatures.geometry.type === "Point"){
+                    pointsFeaturesList.push(zoneFeatures);
+                  }
+                  else if (zoneFeatures.geometry.type === "MultiPolygon") {
+                    multiPolyFeaturesList.push(zoneFeatures);
+                  }
+                });
+              }
+            });
+
+
+          // Forecast MultiPolygons Feature Collection
+          var multiPolyFeatureCollection = {
+            type: "FeatureCollection",
+            features: multiPolyFeaturesList
+          }
+
+          // Centroid Points for Collection
+          var pointsFeatureCollection = {
+            type: "FeatureCollection",
+            features: pointsFeaturesList
+          }
+
+          map_control.addSource("marine-forecast-data", {
+              type: "geojson",
+              data: multiPolyFeatureCollection
+          }); 
+
+          // map_control.addSource("marine-forecast-zone-points", {
+          //   type: "geojson",
+          //   data: nwsMarineForecasts
+          // }); 
+
+          map_control.addSource("marine-forecast-zone-points", {
+            type: "geojson",
+            data: pointsFeatureCollection
+          }); 
+
+            // Add the label style
+            map_control.addLayer({
+              id: "zone-label-style-layer",
+              type: "symbol",
+              source: "marine-forecast-zone-points",
+              layout: {
+                "text-field": ["get", "id"],
+                "text-size": 10
+              },
+              paint: {
+                "text-color": "red"
+              }
+            });
+
+            map_control.addLayer({
+              id: "marine-forecast-layer",
+              source: "marine-forecast-data",
+              type: "line",
+              layout: {},
+              paint: {
+                "line-color": "#0058B0",
+                "line-width": 1
+              }
+            });
+
+            map_control.addLayer({
+              id: "marine-forecast-fill-layer",
+              source: "marine-forecast-data", 
+              type: "fill",
+              layout: {},
+              paint: {
+                "fill-color": "transparent", 
+                //"fill-opacity": 0.5
+              }
+            });
+          
+          // change cursor to pointer when user hovers over a clickable feature
+          map_control.on("mouseenter", "marine-forecast-fill-layer", e => {
+            if (e.features.length) {
+              map_control.getCanvas().style.cursor = "pointer";
+
+              // var coordinates = e.features[0].geometry.coordinates.slice();
+              // var zone_id = e.features[0].properties.zone_id;
+
+              // // // Ensure that if the map is zoomed out such that multiple
+              // // // copies of the feature are visible, the popup appears
+              // // // over the copy being pointed to.
+              // // while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+              // // coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+              // // }
+               
+              // // Populate the popup and set its coordinates
+              // // based on the feature found.
+              // toolTip_Marine.setLngLat(coordinates).setHTML(zone_id).addTo(map_control);
+            }
+          });
+
+          // reset cursor to default when user is no longer hovering over a clickable feature
+          map_control.on("mouseleave", "marine-forecast-fill-layer", () => {
+            map_control.getCanvas().style.cursor = "";
+            toolTip_Marine.remove();
+          });
+
+          // add popup when user clicks a point
+          // e.point is the x, y coordinates of the mousemove event relative
+          // to the top-left corner of the map
+          map_control.on("click", "marine-forecast-fill-layer", async e => {
+
+            if (e.features.length) {
+              const feature = e.features[0];
+
+              var coordinates = [e.lngLat.lng, e.lngLat.lat]
+              var zone_id = feature.properties.id;
+
+              console.log('marine-forecast-fill-layer => Click!!! ');
+
+              // console.log('coordinates => ' + coordinates);
+              // console.log('zone_id => ' + zone_id);
+              // console.log('feature => ');
+              // console.log(feature);
+
+              // Find the Container Card in the Sidebar...
+              var forecastCard = document.getElementById("forcastCard");
+              forecastCard.setHTML = "";
+
+              // Toggle the forecast Sidebar (???)
+              toggleForecastSidebar();
+              ReactDOM.render(<MarineForecastSlider feature={feature} />, forecastCard);
+
+              // // create popup node
+              // const popupNode = document.createElement("div");
+              // ReactDOM.render(<MarineForecastPopup feature={feature} />, popupNode);
+
+              // popUpRef.setLngLat(coordinates).setHTML(popupNode).addTo(map_control);
+              // popUpRef.setLngLat(coordinates).setDOMContent(popupNode).addTo(map_control);
+            }
+          });
+
+        }
+       
+        break;
+
       /* Wind Map  */
       default:
         
@@ -1922,21 +2374,34 @@ const loadMapLayer = (layerId) => {
   return (
       <div >
           <div className='nav-container'>
-              <Navbar expand="lg" variant="dark" bg="dark" >
-                {/* <Button onClick={toggleSidebar} className='openbtn' variant="outline-info">☰</Button> */}
-                <Navbar.Brand className='navbarLink' href="#home">Fish Finders</Navbar.Brand>
-              </Navbar>      
+            <Container className="navbarContainer">
+                <Row className="text-center justify-content-center">
+                  <Col xs={6}>
+                    <Navbar expand="sm" variant="dark" bg="dark">
+                      {/* <Button onClick={toggleMenuSidebar} className='openbtn' variant="outline-info">☰</Button> */}
+                      <Navbar.Brand className='navbarLink' href="#home">Fish Finders</Navbar.Brand>
+                    </Navbar> 
+                  </Col>  
+                  <Col xs={6} className="mapInfoColumn">
+                    <div className='mapInfoStyle'>
+                      <div>
+                          Long: {lng} | Lat: {lat} | Zoom: {zoom}
+                      </div>   
+                    </div>
+                  </Col>
+                </Row>
+            </Container>
           </div>
           <div id='mapbox_main' className='map-wrapper'>
-            <div className='mapInfoStyle'>
-              <div>
+            {/*<div className='mapInfoStyle'>
+               <div>
                   Longitude: {lng} | Latitude: {lat} | Zoom: {zoom}
               </div>
-            </div>
+            </div> */}
             <div className='map-container' ref={mapContainerRef} />
           </div>
-          <div id="mySidebarContainer" className="sidebarContainer">
-            <div id="mySidebar" className="sidebar">
+          <div id="menuSidebarContainer" className="sidebarContainer-Left">
+            <div id="menuSidebar-Left" className="sidebar-Left">
                 <Accordion className='accordion-custom' defaultActiveKey="0">
                 <Card className='card-custom'>
                     <Accordion.Toggle className='card-header-custom' as={Card.Header} eventKey="0">
@@ -1946,15 +2411,28 @@ const loadMapLayer = (layerId) => {
                         <Card.Body className='card-body-custom'>
                             <a href="#" onClick={() => loadMapLayer(1)}>Wind Map</a>
                             <a href="#" onClick={() => loadMapLayer(2)}>Stations and Buoys</a>
-                            <a href="#" onClick={() => loadMapLayer(3)}>Sea Surface Temps</a>
+                            {/* <a href="#" onClick={() => loadMapLayer(3)}>Sea Surface Temps</a> */}
+                            <a href="#" onClick={() => loadMapLayer(4)}>NWS Marine Forecast</a>
                         </Card.Body>
                     </Accordion.Collapse>
                 </Card>
                 </Accordion>
             </div>
-            <Container id="mySidebarBtn" className="sidebar-button">
-                <Button id="floatingBtn" onClick={toggleSidebar} className='openbtn' variant="outline-info">☰</Button>
+            <Container id="menuSidebarBtn-Left" className="sidebar-button-Left">
+                <Button id="floatingBtn" onClick={toggleMenuSidebar} className='openbtn' variant="outline-info">☰</Button>
             </Container>
+          </div>
+
+          <div id="forecastSidebarContainer" className="sidebarContainer-Right">
+            <div id="forecastSidebar-Right" className="sidebar-Right">
+                <Button onClick={() => toggleForecastSidebar(true)} variant="outline-info">Close</Button>
+                <Accordion className='accordion-custom' defaultActiveKey="0">
+                <Card className='card-custom'>
+                    <Card.Body id="forcastCard" className='card-body-custom'>
+                    </Card.Body>
+                </Card>
+                </Accordion>
+            </div>
           </div>
 
       </div>

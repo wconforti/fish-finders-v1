@@ -15,19 +15,63 @@
   position: absolute;
   top: 0; bottom: 0;
   right: 0;  left: 0;
-  width:100%;
+  width: 100%;
 }  
 
 .navbarLink {
   padding-left:10px;
 }
 
-/* Right-justified css */
+.nav-container  {
+  background-color: #343a40 !important;
+}
+
+.navbarContainer {
+  padding: 0px !important;
+  margin: 0px !important;
+  width:100% !important;
+} 
+
+/* Container div for Map Info content */
+.mapInfoColumn {
+  /* Center Horizonatlly */
+  display: flex;
+  justify-content: center;
+}
+
+/* Move to Nav Bar */
 .mapInfoStyle {
+  /* Center vertically */
+  position: absolute;
+  top: 50%;
+  transform: translate(0, -50%);
+
+  background-color: #ffffff;
+  color: #343a40 !important;
+  padding: 4px 10px 4px 10px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 500;
+  width: 65%;
+
+  text-align: auto;
+
+  border-color: #343a40 !important;
+  border-style: solid;
+  border-width: 1pt;
+
+  border-bottom-right-radius: 10px; 
+  border-top-right-radius: 10px; 
+
+  border-bottom-left-radius: 10px; 
+  border-top-left-radius: 10px; 
+}
+
+/* Right-justified css */
+/* .mapInfoStyle {
     position: relative;
     top: 0;
     left: 0;
-    /* margin: 12px; */
     float: right;
     margin-right: 45px;
     background-color: #404040;
@@ -35,7 +79,7 @@
     z-index: 1 !important;
     padding: 6px;
     font-weight: bold;
-  }
+  } */
 
   /* Left-justified css */
   /* .mapInfoStyle {
@@ -51,8 +95,8 @@
     font-weight: bold;
   } */
 
-/* Side Bar Menu */
-.sidebar {
+/* Left-hand Side Bar Menu */
+.sidebar-Left {
   height: 100%;
   width: 250px;
   position: fixed;
@@ -64,18 +108,18 @@
   transition: 0.5s;
 }
 
-.sidebarContainer { 
+.sidebarContainer-Left { 
   float:left;
 }
 
-.sidebar-button {
+.sidebar-button-Left {
   position: fixed;
   transition: 0.5s;
   margin-left: 0px;
   padding: 0px;
 }
 
-.sidebar a {
+.sidebar-Left a {
   /* padding: 8px 8px 8px 32px; */
   padding: 12px 12px 12px 12px;
   text-decoration: none;
@@ -86,11 +130,11 @@
   transition: 0.3s;
 }
 
-.sidebar a:hover {
+.sidebar-Left a:hover {
   color: #f1f1f1;
 }
 
-.sidebar .closebtn {
+.sidebar-Left .closebtn {
   position: absolute;
   top: 0;
   right: 25px;
@@ -163,3 +207,51 @@
   background-color: #fff;
   border: 1px solid #111;
 } */
+
+
+/* Right-hand Side Bar Menu */
+.sidebar-Right {
+  height: 100%;
+  width: 400px;
+  position: fixed;
+  z-index: 1;
+  top: 55px;
+  right: -400px;
+  background-color: #fff;
+  overflow-x: hidden;
+  transition: 0.5s;
+}
+
+.sidebarContainer-Right { 
+  float:right;
+}
+
+.sidebar-button-Right {
+  position: fixed;
+  transition: 0.5s;
+  margin-right: 0px;
+  padding: 0px;
+}
+
+.sidebar-Right a {
+  /* padding: 8px 8px 8px 32px; */
+  padding: 12px 12px 12px 12px;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 500;
+  color: #111;
+  display: block;
+  transition: 0.3s;
+}
+
+.sidebar-Right a:hover {
+  color: #f1f1f1;
+}
+
+.sidebar-Right .closebtn {
+  position: absolute;
+  top: 0;
+  right: 25px;
+  font-size: 36px;
+  margin-left: 50px;
+}
